@@ -1,5 +1,4 @@
 import { Body, Controller, Get, Param, Post } from '@nestjs/common';
-import { Animal } from './animal.entity';
 import { AnimalService } from './animal.service';
 
 interface MarketingListRequest {
@@ -17,17 +16,22 @@ export class AnimalController {
   constructor(private readonly animalService: AnimalService){}
 
   @Get(':gender/:id')
-  GetAnimalById(@Param() params): Promise<Animal> {
-    return this.animalService.FindById(params.id, params.gender);
+  GetAnimalById(@Param() params) {
+    return this.animalService.GetAnimalById(params.id, params.gender);
+  }
+
+  @Get(':id')
+  GetAnimalDetail(@Param() params) {
+    return this.animalService.GetAnimalDetail(params.id);
   }
 
   @Post('marketing/list')
-  GetMarketingAnimalList(@Body() body: MarketingListRequest): Promise<Animal[]> {
+  GetMarketingAnimalList(@Body() body: MarketingListRequest) {
     return this.animalService.GetMarketingAnimalList(body.breed_group, body.gender, body.marketing_groups);
   }
 
   @Post('custom/list')
-  GetCustomAnimalList(@Body() body: CustomListRequest): Promise<Animal[]> {
+  GetCustomAnimalList(@Body() body: CustomListRequest) {
     return this.animalService.GetCustomAnimalList(body.ids);
   }
 }

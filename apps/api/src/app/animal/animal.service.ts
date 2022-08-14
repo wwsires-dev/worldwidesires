@@ -1,22 +1,21 @@
-import { Inject, Injectable } from "@nestjs/common";
-import { Repository } from "typeorm";
+import { Injectable } from "@nestjs/common";
+import { AnimalResponse } from "@worldwidesires/api-interfaces";
+import { Bit, Int, IProcedureResult, MAX, NVarChar, UniqueIdentifier } from "mssql";
+import { DatabaseService, SprocParam } from "../database/database.service";
 import { FormatDate } from "../utils/functions/format-date";
-import { Animal } from "./animal.entity";
 
 @Injectable()
 export class AnimalService {
 
-  constructor(
-    @Inject("ANIMAL_REPOSITORY")
-    private animalRepository: Repository<Animal>,
-  ) {}
+  constructor(private databaseService: DatabaseService) {}
 
-  async FindById(id: string, gender: string): Promise<Animal> {
+  GetAnimalById(id: string, gender: string): Promise<AnimalResponse> {
 
-    const animal = await this.animalRepository.query(`
+    const sql = `
       SELECT
         Id,
         RegId,
+        dbo.GetPrimaryNaabCode(Id) NaabCode,
         ShortName,
         RegName,
         Gender,
@@ -26,23 +25,22 @@ export class AnimalService {
         BreedGroup,
         UpdateDate
       FROM dbo.GetAnimalBase('${id}', '${gender}');
-    `);
+    `;
 
-    animal.map((a: Animal) => {
-
-      a.DateOfBirth = FormatDate(a.DateOfBirth);
-
-      return a;
-    });
-
-    return animal;
+    return this.databaseService.Query(sql).then(results => {
+      const res: AnimalResponse = results.recordset[0];
+      res.DateOfBirth = FormatDate(res.DateOfBirth);
+      return res;
+    }).catch(err => {
+      return err;
+    });;
   }
 
-  async GetMarketingAnimalList(breedGroup: string, gender: string, marketingGroups: string[]) {
+  GetMarketingAnimalList(breedGroup: string, gender: string, marketingGroups: string[]): Promise<AnimalResponse[]> {
 
     const mktg = marketingGroups.join(",");
 
-    const animals = await this.animalRepository.query(`
+    const sql = `
       SELECT
         Id,
         Breed,
@@ -59,54 +57,107 @@ export class AnimalService {
         Controller,
         Stud,
         Country
-      FROM Api.BaseAnimal('${breedGroup}','${gender}','${mktg}')
-    `);
+      FROM Api.BaseAnimal('${breedGroup}','${gender}','${mktg}');
+    `;
 
-    animals.map((a: Animal) => {
-
-      a.DateOfBirth = FormatDate(a.DateOfBirth);
-
-      return a;
+    return this.databaseService.Query(sql).then(results => {
+      const res: AnimalResponse[] = results.recordset;
+      res.forEach(record => {
+        record.DateOfBirth = FormatDate(record.DateOfBirth);
+      });
+      return res;
+    }).catch(err => {
+      return err;
     });
-
-    return animals;
-
   }
 
-  async GetCustomAnimalList(animalIds: string[]) {
+  GetCustomAnimalList(animalIds: string[]) {
 
-    // Format strings with "" for SQL Server.
-    const ids = animalIds.map((id) => `"${id}"`).join(",");
+    const bullIds = { BullIds: animalIds };
+    const ids = JSON.stringify( bullIds );
 
-    // We are just using this sproc for the AdditionalBullIds to get a custom list.
-    const animals = await this.animalRepository.query(`
-      DECLARE @AdditionalBullIds NVarchar(max),
-        @SourceList NVarchar(100),
-        @OrderByColumns NVarchar(max),
-        @OffSet INT,
-        @IncludeNxGen BIT;
+    const sprocParams: SprocParam[] = [
+      {
+        name: "AdditionalBullIds",
+        type: NVarChar(MAX),
+        value: ids
+      },
+      {
+        name: "SourceList",
+        type: NVarChar(100),
+        value: ""
+      },
+      {
+        name: "OrderByColumns",
+        type: NVarChar(MAX),
+        value: "Id ASC"
+      },
+      {
+        name: "OffSet",
+        type: Int(),
+        value: -1
+      },
+      {
+        name: "IncludeNxGen",
+        type: Bit(),
+        value: 1
+      }
+    ];
 
-      SET @AdditionalBullIds = '{"BullIds":[${ids}]}';
-      SET @SourceList = '';
-      SET @OrderByColumns = 'Id ASC';
-      SET @OffSet = -1;
-      SET @IncludeNxGen = 0;
-
-      EXECUTE Api.AnimalList
-        @SourceList,
-        @OrderByColumns,
-        @AdditionalBullIds,
-        @OffSet,
-        @IncludeNxGen;
-    `);
-
-    animals.map((a: Animal) => {
-
-      a.DateOfBirth = FormatDate(a.DateOfBirth);
-
-      return a;
+    return this.databaseService.Execute("Api.AnimalList", sprocParams).then(results => {
+      const res: AnimalResponse[] = results.recordset;
+      res.forEach(record => {
+        record.DateOfBirth = FormatDate(record.DateOfBirth);
+      });
+      return res;
+    }).catch(err => {
+      return err;
     });
+  }
 
-    return animals;
+  GetAnimalDetail(animalId: string) {
+
+    const sprocParams: SprocParam[] = [
+      {
+        name: "AnimalKey",
+        type: NVarChar(100),
+        value: animalId
+      },
+      {
+        name: "ProofPeriodId",
+        type: UniqueIdentifier(),
+        value: null
+      },
+      {
+        name: "LanguageCode",
+        type: NVarChar(100),
+        value: "EN"
+      },
+      {
+        name: "IncludeProof",
+        type: Bit(),
+        value: 1
+      },
+      {
+        name: "IncludeLactation",
+        type: Bit(),
+        value: 1
+      },
+      {
+        name: "IncludeSons",
+        type: Bit(),
+        value: 1
+      }
+    ];
+
+    return this.databaseService.Execute("Api.AnimalData", sprocParams).then(results => {
+      const res: any = results.recordsets;
+      // res.forEach(record => {
+      //   record.DateOfBirth = FormatDate(record.DateOfBirth);
+      // });
+      return res;
+    }).catch(err => {
+      return err;
+    });
   }
 }
