@@ -1,8 +1,8 @@
-import { Component } from '@angular/core';
+import { Component } from "@angular/core";
 
 @Component({
-  selector: 'worldwidesires-root',
-  templateUrl: './app.component.html',
-  styleUrls: ['./app.component.css'],
+	selector: "worldwidesires-root",
+	templateUrl: "./app.component.html",
+	styleUrls: ["./app.component.css"],
 })
 export class AppComponent {}

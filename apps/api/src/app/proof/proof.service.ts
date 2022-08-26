@@ -4,15 +4,13 @@ import { DatabaseService } from "../database/database.service";
 
 @Injectable()
 export class ProofService {
+	constructor(private databaseService: DatabaseService) {}
 
-  constructor(private databaseService: DatabaseService) {}
+	async GetProofTraits(traits: string[], animalIds: string[]): Promise<ProofResponse[]> {
+		const traitsStr = traits.join(",");
+		const animalIdsStr = animalIds.join(",");
 
-  async GetProofTraits(traits: string[], animalIds: string[]): Promise<ProofResponse[]> {
-
-    const traitsStr = traits.join(",");
-    const animalIdsStr = animalIds.join(",");
-
-    const sql = `
+		const sql = `
       SELECT
         AnimalId,
         TraitId,
@@ -20,19 +18,16 @@ export class ProofService {
       FROM Api.AnimalProof('${traitsStr}', '${animalIdsStr}');
     `;
 
-    return this.databaseService.Query(sql).then(results => {
-      const res: ProofResponse[] = results.recordsets[0];
-      return res;
-    });
-  }
+		return this.databaseService.Query(sql).then((results) => {
+			const res: ProofResponse[] = results.recordsets[0];
+			return res;
+		});
+	}
 
-  GetTraitMeta(): Promise<TraitMetaResponse[]> {
-
-    return this.databaseService.Execute("Api.MetaAll").then(results => {
-      const res: TraitMetaResponse[] = results.recordsets[0];
-      return res;
-    });
-
-  }
-
+	GetTraitMeta(): Promise<TraitMetaResponse[]> {
+		return this.databaseService.Execute("Api.MetaAll").then((results) => {
+			const res: TraitMetaResponse[] = results.recordsets[0];
+			return res;
+		});
+	}
 }
