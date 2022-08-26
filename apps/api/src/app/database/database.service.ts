@@ -28,6 +28,7 @@ export class DatabaseService {
 	private conn: ConnectionPool;
 
 	constructor() {
+		this.conn = new ConnectionPool(this.dbConfig);
 		this.Connect();
 	}
 
