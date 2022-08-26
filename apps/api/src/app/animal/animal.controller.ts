@@ -7,6 +7,15 @@ interface MarketingListRequest {
 	marketing_groups: string[];
 }
 
+interface AnimalRequest {
+	gender: string;
+	id: string;
+}
+
+interface AnimalDetailRequest {
+	id: string;
+}
+
 interface CustomListRequest {
 	ids: string[];
 }
@@ -16,12 +25,12 @@ export class AnimalController {
 	constructor(private readonly animalService: AnimalService) {}
 
 	@Get(":gender/:id")
-	GetAnimalById(@Param() params) {
+	GetAnimalById(@Param() params: AnimalRequest) {
 		return this.animalService.GetAnimalById(params.id, params.gender);
 	}
 
 	@Get(":id")
-	GetAnimalDetail(@Param() params) {
+	GetAnimalDetail(@Param() params: AnimalDetailRequest) {
 		return this.animalService.GetAnimalDetail(params.id);
 	}
 
