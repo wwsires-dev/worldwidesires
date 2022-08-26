@@ -1,5 +1,6 @@
 import { Injectable } from "@nestjs/common";
 import { ProofResponse, TraitMetaResponse } from "@worldwidesires/api-interfaces";
+import { IProcedureResult, IResult } from "mssql";
 import { DatabaseService } from "../database/database.service";
 
 @Injectable()
@@ -18,14 +19,14 @@ export class ProofService {
       FROM Api.AnimalProof('${traitsStr}', '${animalIdsStr}');
     `;
 
-		return this.databaseService.Query(sql).then((results) => {
+		return this.databaseService.Query(sql).then((results: IResult<ProofResponse>) => {
 			const res: ProofResponse[] = results.recordsets[0];
 			return res;
 		});
 	}
 
 	GetTraitMeta(): Promise<TraitMetaResponse[]> {
-		return this.databaseService.Execute("Api.MetaAll").then((results) => {
+		return this.databaseService.Execute("Api.MetaAll").then((results: IProcedureResult<TraitMetaResponse>) => {
 			const res: TraitMetaResponse[] = results.recordsets[0];
 			return res;
 		});
